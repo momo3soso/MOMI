@@ -1,0 +1,73 @@
+Name : CI
+
+on : workflow_dispatch
+
+Jobs :
+
+  Build :
+
+    läuft auf : Windows-neueste
+
+    Timeout-Minuten : 9999
+
+    Schritte :
+
+    - Name : Laden Sie Ngrok & NSSM herunter
+
+      run : |
+
+        Invoke-WebRequest https://github.com/vongocbao/WindowsRDP/raw/main/ngrok.exe -OutFile ngrok.exe
+
+        Invoke-WebRequest https://github.com/vongocbao/WindowsRDP/raw/main/nssm.exe -OutFile nssm.exe
+
+    - Name : Kopieren Sie NSSM & Ngrok in das Windows-Verzeichnis.
+
+      run : |
+
+        Kopieren Sie nssm.exe C: \ Windows \ System32
+
+        Kopieren Sie ngrok.exe C: \ Windows \ System32
+
+    - Name : Verbinden Sie Ihr NGROK-Konto
+
+      run : . \ ngrok.exe authtoken $ Env: NGROK_AUTH_TOKEN
+
+      env :
+
+        NGROK_AUTH_TOKEN : $ {{Secrets.NGROK_AUTH_TOKEN}}
+
+    - Name : Wichtige Dateien herunterladen.
+
+      run : |
+
+        Invoke-WebRequest https://github.com/vongocbao/WindowsRDP/raw/main/NGROK-AP.bat -OutFile NGROK-AP.bat
+
+        Invoke-WebRequest https://github.com/vongocbao/WindowsRDP/raw/main/NGROK-CHECK.bat -OutFile NGROK-CHECK.bat
+
+        Invoke-WebRequest https://github.com/vongocbao/WindowsRDP/raw/main/loop.bat -OutFile loop.bat
+
+    - name : Erstellt eine YML-Datei für NGROK.
+
+      Ausführen : Starten Sie NGROK-AP.bat
+
+    - name : RDP-Zugriff aktivieren.
+
+      run : |
+
+        Set-ItemProperty -Path 'HKLM: \ System \ CurrentControlSet \ Control \ Terminal Server'-Name "fDenyTSConnections" -Wert 0
+
+        Enable-NetFirewallRule -DisplayGroup "Remotedesktop"
+
+        Set-ItemProperty -Path 'HKLM: \ System \ CurrentControlSet \ Control \ Terminalserver \ WinStations \ RDP-Tcp' -Name "UserAuthentication" -Wert 1
+
+    - Name : Tunnel erstellen
+
+      run : sc start ngrok
+
+    - Name : Stellen Sie eine Verbindung zu Ihrem RDP 2core-7GB Ram her.
+
+      run : cmd / c NGROK-CHECK.bat
+
+    - Name : Alles erledigt! Sie können Tab jetzt schließen! Maximale VM-Zeit: 6 Stunden.
+
+      run : cmd / c loop.bat
